@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Capital Voting Phase 1
 
-## Getting Started
+Capital Voting is a commerce-based participatory funding platform built around a simple premise: **People vote with their dollars.**
 
-First, run the development server:
+A campaign presents two or more competing proposals addressing the same problem. Participants support a proposal by purchasing its associated merchandise. When the campaign closes, the winning proposal is funded based on a disclosed voting rule.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## What Phase 1 Proves
+The goal of Phase 1 is to answer one question:
+> Can people understand, trust, and successfully use a system where merchandise purchases determine which proposal receives funding?
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+It is a functional proof-of-concept prioritizing a clean, understandable flow, un-manipulatable vote ledgers, and basic payment processing.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How to Run Locally
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Prerequisites
+- Node.js (v18+)
+- PostgreSQL database
+- Stripe Account (for test mode API keys)
 
-## Learn More
+### Setup
+1. Clone the repository and install dependencies:
+   ```bash
+   npm install
+   ```
+2. Set up environment variables:
+   ```bash
+   cp .env.example .env.local
+   ```
+   *Fill in your database URL and Stripe test keys.*
+3. Run database migrations:
+   ```bash
+   npx prisma db push
+   ```
+4. Seed the database with the demonstration campaign:
+   ```bash
+   npm run seed
+   ```
+5. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+## How to Run Tests
+- Unit/Integration tests (Jest/Vitest): `npm test`
+- End-to-End tests (Cypress): `npm run test:e2e`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Seeding the Demonstration Campaign
+Run `npm run seed` to populate a fictional campaign ("Neighborhood Lot Decision") pitting a Community Garden against a Pocket Park. This campaign is explicitly labeled as a demonstration with no real-world funding decision.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Intentionally Excluded Features (Phase 1)
+- Native mobile applications
+- Public proposal submission
+- Ranked-choice voting
+- Social network features / Comments
+- Multi-vendor marketplace payouts
+- Real-money charitable donations (without explicit tax configurations)
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Unresolved Legal Questions
+- **Tax Deductibility**: Phase 1 assumes no tax-deductible contributions are being made.
+- **Electoral Constraints**: This platform must not be used for political campaigns, ballot measures, or securities/investments in its current state.

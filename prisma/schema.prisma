@@ -1,0 +1,291 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  PLATFORM_ADMIN
+  CAMPAIGN_MANAGER
+  FINANCIAL_REVIEWER
+  PUBLISHER
+  AUDITOR
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      Role     @default(AUDITOR)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  auditEvents AuditEvent[]
+}
+
+enum CampaignStatus {
+  DRAFT
+  INTERNAL_REVIEW
+  SCHEDULED
+  LIVE
+  PAUSED
+  CLOSED
+  RECONCILIATION
+  WINNER_CONFIRMED
+  FUNDING_PENDING
+  FUNDED
+  IMPLEMENTATION
+  COMPLETED
+  CANCELED
+}
+
+enum VotingRule {
+  UNIT_VOTING
+  REVENUE_VOTING
+  NET_FUNDING_VOTING
+}
+
+enum TiePolicy {
+  EXTEND_72_HOURS
+  SPLIT_PROPORTIONALLY
+  FUND_BOTH
+  INDEPENDENT_TIE_BREAK
+  CANCEL_AND_REFUND
+}
+
+model Campaign {
+  id                   String         @id @default(cuid())
+  status               CampaignStatus @default(DRAFT)
+  title                String
+  slug                 String         @unique
+  summary              String
+  problemStatement     String
+  imageUrl             String?
+  startDate            DateTime
+  endDate              DateTime
+  organizer            String
+  geographicScope      String?
+  eligibilityRules     String?
+  votingRule           VotingRule     @default(UNIT_VOTING)
+  tiePolicy            TiePolicy      @default(EXTEND_72_HOURS)
+  legalDisclaimer      String?
+  winningProposalId    String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  proposals            Proposal[]
+  snapshots            CampaignResultSnapshot[]
+  auditEvents          AuditEvent[]
+  updates              CampaignUpdate[]
+  financialPlan        FinancialAllocationPlan?
+}
+
+model Proposal {
+  id                   String   @id @default(cuid())
+  campaignId           String
+  campaign             Campaign @relation(fields: [campaignId], references: [id])
+  title                String
+  shortLabel           String
+  summary              String
+  fullDescription      String
+  implementationPlan   String
+  intendedBeneficiary  String
+  estimatedBudget      Decimal
+  estimatedTimeline    String
+  responsibleEntity    String
+  successCriteria      String
+  risksLimitations     String
+  imageUrl             String?
+  status               String   @default("ACTIVE")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  products             Product[]
+  voteLedgerEntries    VoteLedgerEntry[]
+}
+
+model Product {
+  id                   String   @id @default(cuid())
+  proposalId           String
+  proposal             Proposal @relation(fields: [proposalId], references: [id])
+  name                 String
+  description          String
+  imageUrl             String?
+  productType          String
+  price                Decimal
+  estimatedCost        Decimal
+  estimatedNetContrib  Decimal
+  inventoryStatus      String
+  fulfillmentProvider  String
+  shippingInfo         String
+  voteValue            Int      @default(1)
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  variants             ProductVariant[]
+}
+
+model ProductVariant {
+  id                   String   @id @default(cuid())
+  productId            String
+  product              Product  @relation(fields: [productId], references: [id])
+  name                 String
+  sku                  String   @unique
+  priceAdjustment      Decimal  @default(0.0)
+  
+  orderItems           OrderItem[]
+}
+
+model Customer {
+  id                   String   @id @default(cuid())
+  email                String   @unique
+  name                 String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  orders               Order[]
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  CANCELED
+  REFUNDED
+}
+
+model Order {
+  id                   String   @id @default(cuid())
+  customerId           String?
+  customer             Customer? @relation(fields: [customerId], references: [id])
+  status               OrderStatus @default(PENDING)
+  totalAmount          Decimal
+  currency             String   @default("USD")
+  stripeSessionId      String?  @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  items                OrderItem[]
+  payments             Payment[]
+  voteEntries          VoteLedgerEntry[]
+}
+
+model OrderItem {
+  id                   String   @id @default(cuid())
+  orderId              String
+  order                Order    @relation(fields: [orderId], references: [id])
+  variantId            String
+  variant              ProductVariant @relation(fields: [variantId], references: [id])
+  quantity             Int
+  unitPrice            Decimal
+  totalPrice           Decimal
+}
+
+model Payment {
+  id                   String   @id @default(cuid())
+  orderId              String
+  order                Order    @relation(fields: [orderId], references: [id])
+  stripePaymentIntentId String @unique
+  amount               Decimal
+  currency             String
+  status               String
+  createdAt            DateTime @default(now())
+
+  refunds              Refund[]
+  disputes             PaymentDispute[]
+}
+
+model Refund {
+  id                   String   @id @default(cuid())
+  paymentId            String
+  payment              Payment  @relation(fields: [paymentId], references: [id])
+  amount               Decimal
+  reason               String?
+  status               String
+  createdAt            DateTime @default(now())
+}
+
+model PaymentDispute {
+  id                   String   @id @default(cuid())
+  paymentId            String
+  payment              Payment  @relation(fields: [paymentId], references: [id])
+  status               String
+  createdAt            DateTime @default(now())
+}
+
+enum VoteStatus {
+  PROVISIONAL
+  VALID
+  INVALIDATED
+}
+
+model VoteLedgerEntry {
+  id                   String   @id @default(cuid())
+  campaignId           String
+  proposalId           String
+  proposal             Proposal @relation(fields: [proposalId], references: [id])
+  orderId              String
+  order                Order    @relation(fields: [orderId], references: [id])
+  productId            String
+  quantity             Int
+  voteValue            Int
+  votingRule           VotingRule
+  status               VoteStatus @default(PROVISIONAL)
+  invalidationReason   String?
+  timestamp            DateTime @default(now())
+}
+
+model CampaignResultSnapshot {
+  id                   String   @id @default(cuid())
+  campaignId           String
+  campaign             Campaign @relation(fields: [campaignId], references: [id])
+  winningProposalId    String?
+  finalValidVotes      Int
+  participantCount     Int
+  grossRevenue         Decimal
+  invalidatedVotes     Int
+  estimatedNetProceeds Decimal
+  reconciledProceeds   Decimal?
+  snapshotHash         String
+  createdAt            DateTime @default(now())
+}
+
+model FinancialAllocationPlan {
+  id                   String   @id @default(cuid())
+  campaignId           String   @unique
+  campaign             Campaign @relation(fields: [campaignId], references: [id])
+  manufacturingPct     Decimal
+  paymentFeesPct       Decimal
+  platformFeesPct      Decimal
+  winnerReservePct     Decimal
+  createdAt            DateTime @default(now())
+}
+
+model CampaignUpdate {
+  id                   String   @id @default(cuid())
+  campaignId           String
+  campaign             Campaign @relation(fields: [campaignId], references: [id])
+  title                String
+  content              String
+  publishedAt          DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model AuditEvent {
+  id                   String   @id @default(cuid())
+  eventType            String
+  actorId              String?
+  actor                User?    @relation(fields: [actorId], references: [id])
+  campaignId           String?
+  campaign             Campaign? @relation(fields: [campaignId], references: [id])
+  entityType           String
+  entityId             String
+  previousState        Json?
+  newState             Json?
+  reason               String?
+  timestamp            DateTime @default(now())
+}
